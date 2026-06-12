@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Course Recommender — Powered by ML</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@0.263.1/dist/umd/lucide.js"></script>
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body>
+
+  <header class="header" id="header">
+    <div class="header__inner">
+      <a class="brand" href="/">
+        <span class="brand__icon"><i data-lucide="brain-circuit"></i></span>
+        <span class="brand__text">
+          <span class="brand__name">CourseAI</span>
+          <span class="brand__tag">Recommendation Engine</span>
+        </span>
+      </a>
+      <div class="header__stats" id="headerStats">
+        <div class="stat-pill">
+          <i data-lucide="layers"></i>
+          <span id="statCourses">{{ stats.total_courses }}</span> courses
+        </div>
+        <div class="stat-pill">
+          <i data-lucide="tag"></i>
+          <span id="statCategories">{{ stats.total_categories }}</span> categories
+        </div>
+        <div class="stat-pill stat-pill--accent">
+          <i data-lucide="zap"></i>
+          TF-IDF · Cosine Sim
+        </div>
+      </div>
+      <div class="header__controls">
+        <button class="btn-icon" id="themeToggle" title="Toggle theme" aria-label="Toggle theme">
+          <i data-lucide="moon" id="themeIcon"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero__inner">
+        <div class="hero__copy">
+          <p class="hero__eyebrow">ML-Powered · Content-Based Filtering</p>
+          <h1 class="hero__headline">
+            Find courses built<br />
+            for <span class="hero__accent" id="heroAccentWord">your skills</span>
+          </h1>
+          <p class="hero__sub">
+            Type your interests or skills below. The engine vectorises your
+            input with TF-IDF and ranks every course by cosine similarity.
+          </p>
+        </div>
+
+        <div class="search-card" id="searchCard">
+          <div class="search-card__inner">
+            <div class="field">
+              <label class="field__label" for="queryInput">
+                <i data-lucide="search"></i> Your skills &amp; interests
+              </label>
+              <textarea
+                id="queryInput"
+                class="field__textarea"
+                placeholder="e.g. machine learning python data science neural networks…"
+                rows="3"
+                maxlength="500"
+                aria-label="Enter your skills and interests"
+              ></textarea>
+              <span class="field__counter" id="charCounter">0 / 500</span>
+            </div>
+
+            <div class="filters-row">
+              <div class="filter-group">
+                <label class="field__label" for="categorySelect">
+                  <i data-lucide="filter"></i> Category
+                </label>
+                <select id="categorySelect" class="field__select">
+                  <option value="all">All categories</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <label class="field__label" for="topNSelect">
+                  <i data-lucide="list-ordered"></i> Results
+                </label>
+                <select id="topNSelect" class="field__select">
+                  <option value="3">Top 3</option>
+                  <option value="5" selected>Top 5</option>
+                  <option value="8">Top 8</option>
+                  <option value="10">Top 10</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="chips-section">
+              <span class="chips-label">Try:</span>
+              <div class="chips" id="quickChips">
+                <button class="chip" data-query="python machine learning data science">Python &amp; ML</button>
+                <button class="chip" data-query="web development react nodejs javascript">Full Stack Web</button>
+                <button class="chip" data-query="deep learning neural networks computer vision">Deep Learning</button>
+                <button class="chip" data-query="cloud computing AWS docker kubernetes devops">Cloud &amp; DevOps</button>
+                <button class="chip" data-query="mobile development flutter android ios">Mobile Dev</button>
+                <button class="chip" data-query="data analytics SQL visualization tableau">Data Analytics</button>
+              </div>
+            </div>
+
+            <div class="search-actions">
+              <button class="btn btn--primary" id="recommendBtn" disabled>
+                <span class="btn__icon"><i data-lucide="sparkles"></i></span>
+                <span class="btn__label">Get Recommendations</span>
+              </button>
+              <button class="btn btn--ghost" id="clearBtn">
+                <span class="btn__icon"><i data-lucide="x-circle"></i></span>
+                <span class="btn__label">Clear</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="loading-section hidden" id="loadingSection" aria-live="polite">
+      <div class="loader">
+        <div class="loader__orbit">
+          <span></span><span></span><span></span>
+        </div>
+        <p class="loader__text">Vectorising your query…</p>
+        <p class="loader__sub">Calculating cosine similarity across {{ stats.total_courses }} courses</p>
+      </div>
+    </section>
+
+    <section class="results-section hidden" id="resultsSection">
+      <div class="results-header">
+        <div class="results-header__left">
+          <h2 class="results-title">
+            <i data-lucide="award"></i> Recommendations
+          </h2>
+          <span class="results-badge" id="resultsBadge">0 results</span>
+        </div>
+        <div class="results-header__right">
+          <span class="results-query-label">Query:</span>
+          <span class="results-query-text" id="resultsQueryText"></span>
+        </div>
+      </div>
+      <div class="cards-grid" id="cardsGrid"></div>
+      <div class="empty-state hidden" id="emptyState">
+        <i data-lucide="search-x"></i>
+        <h3>No matches found</h3>
+        <p>Try different keywords or a broader category filter.</p>
+      </div>
+    </section>
+
+    <section class="history-section hidden" id="historySection">
+      <div class="history-header">
+        <h3 class="history-title">
+          <i data-lucide="history"></i> Search History
+        </h3>
+        <button class="btn-text" id="clearHistoryBtn">
+          <i data-lucide="trash-2"></i> Clear all
+        </button>
+      </div>
+      <div class="history-list" id="historyList"></div>
+    </section>
+
+    <section class="how-section">
+      <div class="how-section__inner">
+        <h2 class="section-title">How it works</h2>
+        <div class="how-steps">
+          <div class="how-step">
+            <div class="how-step__num">01</div>
+            <div class="how-step__icon"><i data-lucide="keyboard"></i></div>
+            <h4>Enter your skills</h4>
+            <p>Type any skills or topics you want to learn.</p>
+          </div>
+          <div class="how-step__arrow"><i data-lucide="arrow-right"></i></div>
+          <div class="how-step">
+            <div class="how-step__num">02</div>
+            <div class="how-step__icon"><i data-lucide="code-2"></i></div>
+            <h4>TF-IDF Vectorisation</h4>
+            <p>Your query and all courses are converted into numeric vectors.</p>
+          </div>
+          <div class="how-step__arrow"><i data-lucide="arrow-right"></i></div>
+          <div class="how-step">
+            <div class="how-step__num">03</div>
+            <div class="how-step__icon"><i data-lucide="git-compare"></i></div>
+            <h4>Cosine Similarity</h4>
+            <p>The angle between vectors measures how relevant each course is.</p>
+          </div>
+          <div class="how-step__arrow"><i data-lucide="arrow-right"></i></div>
+          <div class="how-step">
+            <div class="how-step__num">04</div>
+            <div class="how-step__icon"><i data-lucide="trophy"></i></div>
+            <h4>Ranked Results</h4>
+            <p>Top courses are ranked by match percentage and displayed.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer__inner">
+      <div class="footer__brand">
+        <i data-lucide="brain-circuit"></i>
+        <span>CourseAI — AI Recommendation Logic</span>
+      </div>
+      <p class="footer__note">Built with Python · Flask · Scikit-learn · TF-IDF · Cosine Similarity</p>
+      <p class="footer__sub">B.Tech Internship Project · 2024</p>
+    </div>
+  </footer>
+
+  <div class="toast hidden" id="toast" role="alert">
+    <i data-lucide="info" id="toastIcon"></i>
+    <span id="toastMsg"></span>
+  </div>
+
+  <script src="/static/js/script.js"></script>
+</body>
+</html>
